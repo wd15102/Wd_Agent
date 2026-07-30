@@ -1,0 +1,38 @@
+# ============================================================
+# WdClaw .gitignore
+# ============================================================
+
+# Dependencies
+node_modules/
+_reference/
+
+# Build output
+dist/
+release/
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Package locks (keep for apps)
+# package-lock.json
+
+# Temp files
+*.tmp
+*.bak
+fix-*.js

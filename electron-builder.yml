@@ -1,0 +1,22 @@
+appId: com.wdclaw.app
+productName: WdClaw
+artifactName: WdClaw-${version}.${ext}
+electronVersion: "43.1.0"
+electronDownload:
+  mirror: https://mirrors.huaweicloud.com/electron/
+directories:
+  output: release
+asar: false
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+extraMetadata:
+  main: dist/main/main/index.js
+files:
+  - dist/**/*
+  - node_modules/**/*
+  - package.json
+  - resources/**/*
+npmRebuild: false

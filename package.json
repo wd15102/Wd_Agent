@@ -1,0 +1,49 @@
+{
+  "name": "wdclaw",
+  "version": "0.1.0",
+  "description": "Windows Desktop AI Agent - 1:1 QClaw clone",
+  "author": "WdClaw",
+  "main": "dist/main/main/index.js",
+  "scripts": {
+    "dev": "npm run build:electron && concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev:vite": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && electron .",
+    "build": "npm run build:vite && npm run build:electron",
+    "build:vite": "vite build",
+    "build:electron": "tsc -p tsconfig.main.json",
+    "package": "npm run build && electron-builder",
+    "lint": "eslint src/"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "desktop",
+    "glm"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@ant-design/icons": "^6.3.2",
+    "antd": "^6.5.1",
+    "highlight.js": "^11.11.1",
+    "lucide-react": "^1.24.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-image-crop": "^11.1.2",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "concurrently": "^10.0.3",
+    "electron": "^43.1.0",
+    "electron-builder": "^26.15.3",
+    "iconv-lite": "^0.7.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.4",
+    "wait-on": "^9.0.10"
+  }
+}

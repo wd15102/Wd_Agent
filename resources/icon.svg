@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <rect width="256" height="256" rx="48" fill="#6366f1"/>
+  <text x="128" y="162" text-anchor="middle" font-size="140" font-family="monospace" fill="white">W</text>
+  <circle cx="196" cy="68" r="16" fill="#22c55e"/>
+  <path d="M108 88 L128 68 L148 88 L138 88 L138 128 L148 128 L128 148 L108 128 L118 128 L118 88 Z" fill="white" opacity="0.3"/>
+</svg>
