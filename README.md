@@ -13,6 +13,14 @@
 - **工具调用** — 内置 web_search、web_fetch、exec、filesystem 等工具
 - **图片理解** — 多模态模型直接看图，非多模态模型自动调用 GLM-4V 描述图片
 
+### 🔌 MCP 外部工具
+- **Serena 语义代码工具** — 接入 Serena MCP 服务器，提供 21 个 IDE 级代码工具
+  - 代码编辑：替换内容、批量替换、重命名符号、安全删除、符号前后插入
+  - 代码检索：查找符号、查找引用、查找实现、查找声明、符号概览、文件诊断
+  - 记忆系统：写入/读取/列出/删除/重命名/编辑长期记忆
+- **MCP 协议支持** — JSON-RPC 2.0 over stdio/NDJSON，自动桥接外部工具为 `mcp_{serverName}_{toolName}`
+- **工具中文化** — MCP 工具名称和描述自动翻译为中文
+
 ### 🧩 技能系统
 - **技能广场** — 本地技能管理 + 远程技能市场（ClawHub）
 - **技能安装/卸载** — 一键安装，支持选择目标 Agent
@@ -46,6 +54,8 @@
 | 后端服务 | Node.js HTTP (Gateway :3210) |
 | 模型通信 | SSE 流式 + OpenAI 兼容 API |
 | 持久化 | JSON 文件 + 文件系统 |
+| MCP 协议 | JSON-RPC 2.0 over stdio/NDJSON，桥接外部工具 |
+| 代码智能 | Serena MCP（LSP 语义代码检索与重构） |
 
 ## 📁 项目结构
 
@@ -135,6 +145,18 @@ npm run package
 - 支持 stdio（本地进程）和 SSE（远程服务）两种传输
 - 工具自动桥接为 `mcp_{serverName}_{toolName}`
 
+#### Serena 配置示例
+```json
+{
+  "name": "serena",
+  "command": "path/to/serena.exe",
+  "args": ["start-mcp-server", "--context", "ide-assistant", "--project", "your-project"],
+  "transport": "stdio",
+  "enabled": true
+}
+```
+> 安装：`pip install serena-agent`，需要 Python 3.9+
+
 ## 📊 开发进度
 
 ```
@@ -154,11 +176,14 @@ Phase 4  ⏳ Tauri 迁移（远期）
 
 - [Ponytail](https://github.com/DietrichGebert/ponytail) — YAGNI 懒开发原则，融入所有专家 system prompt、工作流引擎、定时任务调度器
   - 实测效果：代码量减少 54%、Token 消耗减少 22%、成本降低 20%、时间缩短 27%
+- [Serena](https://github.com/oraios/serena) — MCP 语义代码工具，提供 21 个 IDE 级代码工具，支持 40+ 编程语言
 
 ## 📝 参考项目
 
 - [QClaw](https://github.com/openclaw/openclaw) — 架构设计参考
 - [CodexSkin](https://github.com/seeyouintokyo/codexskin) — 主题复刻灵感
+- [Serena](https://github.com/oraios/serena) — MCP 语义代码工具，IDE 级代码检索与重构
+- [Ponytail](https://github.com/DietrichGebert/ponytail) — YAGNI 懒开发原则
 
 ## 📄 许可证
 

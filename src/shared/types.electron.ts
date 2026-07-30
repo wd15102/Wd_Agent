@@ -242,6 +242,7 @@ export interface MCPServerStatus {
 
 export interface MCPTool {
   name: string;
+  displayName?: string;
   description?: string;
   inputSchema: {
     type: 'object';

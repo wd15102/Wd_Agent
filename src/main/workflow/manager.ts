@@ -194,7 +194,7 @@ export class WorkflowManager extends EventEmitter {
         error: err.message,
       });
     } finally {
-      this.running.delete(template.templateId);
+      this.running.delete(template.id);
     }
   }
 

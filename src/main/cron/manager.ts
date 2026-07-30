@@ -34,7 +34,7 @@ export class CronManager {
   private jobs = new Map<string, CronJobConfig>();
   private running = new Set<string>(); // 正在执行的任务 ID
   private history: ExecutionRecord[] = [];
-  private tickTimer: NodeJS.Timer | null = null;
+  private tickTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(config: ConfigManager, sessions: SessionManager, agent: Agent, tools: ToolRegistry) {
     this.config = config;

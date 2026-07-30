@@ -180,7 +180,7 @@ export default function MCPTab() {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {serverTools.map(({ tool }) => (
                         <Tooltip key={tool.name} title={tool.description}>
-                          <Tag style={{ fontFamily: 'monospace', fontSize: 11 }}>{tool.name}</Tag>
+                          <Tag style={{ fontSize: 11 }}>{tool.displayName || tool.name}</Tag>
                         </Tooltip>
                       ))}
                     </div>

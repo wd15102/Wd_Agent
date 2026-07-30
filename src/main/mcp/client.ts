@@ -5,6 +5,7 @@
 
 export interface MCPTool {
   name: string;
+  displayName?: string;
   description?: string;
   inputSchema: {
     type: 'object';
@@ -16,6 +17,60 @@ export interface MCPTool {
     }>;
     required?: string[];
   };
+}
+
+// Serena MCP 工具中文名映射
+const TOOL_NAME_CN: Record<string, string> = {
+  replace_content: '替换内容',
+  replace_in_files: '批量替换',
+  replace_symbol_body: '替换符号体',
+  insert_after_symbol: '符号后插入',
+  insert_before_symbol: '符号前插入',
+  rename_symbol: '重命名符号',
+  safe_delete_symbol: '安全删除符号',
+  get_symbols_overview: '符号概览',
+  find_symbol: '查找符号',
+  find_referencing_symbols: '查找引用',
+  find_implementations: '查找实现',
+  find_declaration: '查找声明',
+  get_diagnostics_for_file: '文件诊断',
+  write_memory: '写入记忆',
+  read_memory: '读取记忆',
+  list_memories: '列出记忆',
+  delete_memory: '删除记忆',
+  rename_memory: '重命名记忆',
+  edit_memory: '编辑记忆',
+  onboarding: '入门引导',
+  initial_instructions: '初始说明',
+}
+
+// Serena MCP 工具中文描述映射
+const TOOL_DESC_CN: Record<string, string> = {
+  // 代码编辑类
+  replace_content: '替换文件中的指定内容，支持精确文本匹配',
+  replace_in_files: '在多个文件中批量替换指定内容',
+  replace_symbol_body: '替换整个符号（函数/类/变量）的实现体',
+  insert_after_symbol: '在指定符号（函数/类等）的后面插入新代码',
+  insert_before_symbol: '在指定符号（函数/类等）的前面插入新代码',
+  rename_symbol: '重命名符号（函数/类/变量），自动更新所有引用',
+  safe_delete_symbol: '安全删除符号，检查引用并自动清理',
+  // 代码检索类
+  get_symbols_overview: '获取文件的符号概览（函数/类/变量列表）',
+  find_symbol: '按名称查找符号，支持模糊匹配和作用域过滤',
+  find_referencing_symbols: '查找所有引用了指定符号的位置',
+  find_implementations: '查找指定接口或抽象类的所有实现',
+  find_declaration: '查找符号的声明位置',
+  get_diagnostics_for_file: '获取文件的诊断信息（错误/警告/提示）',
+  // 记忆系统类
+  write_memory: '写入一条长期记忆，跨会话持久化',
+  read_memory: '读取一条已保存的长期记忆',
+  list_memories: '列出所有已保存的长期记忆',
+  delete_memory: '删除一条长期记忆',
+  rename_memory: '重命名一条长期记忆',
+  edit_memory: '编辑一条长期记忆的内容',
+  // 其他
+  onboarding: '启动入门引导，了解项目结构和规范',
+  initial_instructions: '获取初始操作指南和使用说明',
 }
 
 export interface MCPResource {
@@ -134,7 +189,6 @@ export class MCPClient {
     // SSE transport: connect to HTTP endpoint
     const url = this.server.url || `http://localhost:3000/sse`;
     try {
-      const fetch = (await import('node-fetch')).default;
       const resp = await fetch(url, {
         method: 'GET',
         headers: { Accept: 'text/event-stream' },
@@ -220,9 +274,8 @@ export class MCPClient {
       this.pending.set(id, { resolve, reject });
 
       if (this.process?.stdin) {
-        const body = JSON.stringify(req);
-        const message = `Content-Length: ${Buffer.byteLength(body)}\r\n\r\n${body}`;
-        this.process.stdin.write(message, (err: Error | null) => {
+        const message = JSON.stringify(req) + '\n';
+        this.process.stdin.write(message, 'utf-8', (err: Error | null | undefined) => {
           if (err) {
             this.pending.delete(id);
             reject(err);
@@ -247,8 +300,7 @@ export class MCPClient {
 
   private async requestSSE(req: JsonRpcRequest): Promise<unknown> {
     const url = (this.server.url || 'http://localhost:3000/sse').replace('/sse', '/message');
-    const fetch = (await import('node-fetch')).default;
-    const resp = await fetch(url, {
+      const resp = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req),
@@ -258,9 +310,8 @@ export class MCPClient {
   }
 
   private notify(method: string, params?: Record<string, unknown>): void {
-    const msg = JSON.stringify({ jsonrpc: '2.0', method, params });
     if (this.process?.stdin) {
-      const message = `Content-Length: ${Buffer.byteLength(msg)}\r\n\r\n${msg}`;
+      const message = JSON.stringify({ jsonrpc: '2.0', method, params }) + '\n';
       this.process.stdin.write(message);
     }
   }
@@ -270,7 +321,13 @@ export class MCPClient {
   async listTools(): Promise<MCPTool[]> {
     try {
       const result = await this.request('tools/list', {}) as { tools?: MCPTool[] };
-      this.tools = result?.tools || [];
+      const raw = result?.tools || [];
+      // 翻译工具名称为中文
+      this.tools = raw.map(t => ({
+        ...t,
+        displayName: TOOL_NAME_CN[t.name] || t.name,
+        description: TOOL_DESC_CN[t.name] || t.description,
+      }));
       return this.tools;
     } catch {
       return [];

@@ -22,7 +22,7 @@ export class DiscordAdapter extends BaseChannelAdapter {
   readonly platform = 'discord';
   config: DiscordConfig;
   private ws?: WebSocket;      // Discord Gateway WebSocket
-  private heartbeatInterval?: NodeJS.Timer;
+  private heartbeatInterval?: ReturnType<typeof setInterval>;
   private sequence: number | null = null;
   private sessionId?: string;
   private botName?: string;
@@ -54,7 +54,7 @@ export class DiscordAdapter extends BaseChannelAdapter {
       this.ws.onopen = () => console.log('[Discord] WebSocket 已连接');
       this.ws.onmessage = (event) => this.handleMessage(event.data as string);
       this.ws.onclose = () => this.handleDisconnect();
-      this.ws.onerror = (err) => this.emitError(new Error(`Discord WebSocket 错误: ${err.message}`));
+      this.ws.onerror = (err) => this.emitError(new Error(`Discord WebSocket 错误: ${err.type || '未知错误'}`));
 
       // 3. 等待 Hello 帧后发送 Identify
       await new Promise<void>((resolve, reject) => {
@@ -68,8 +68,8 @@ export class DiscordAdapter extends BaseChannelAdapter {
             this.sendIdentify();
             this.ws!.onmessage = origHandler;
             resolve();
-          } else {
-            origHandler(event);
+          } else if (origHandler) {
+            origHandler.call(this.ws!, event);
           }
         };
       });

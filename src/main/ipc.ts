@@ -24,7 +24,7 @@ export function setupIpcHandlers(
   sessions: SessionManager,
   agent: Agent,
   tools: ToolRegistry,
-  cron: CronManager,
+  cronManager: CronManager,
   expertManager: ExpertManager,
   workflowManager: WorkflowManager,
 ) {
@@ -595,11 +595,11 @@ export function setupIpcHandlers(
   }));
 
   // ---- 定时任务 ----
-  ipc.handle('cron:list', () => cron.list());
-  ipc.handle('cron:create', (_event, data) => cron.create(data));
-  ipc.handle('cron:update', (_event, id, updates) => cron.update(id, updates));
+  ipc.handle('cron:list', () => cronManager.list());
+  ipc.handle('cron:create', (_event, data) => cronManager.create(data));
+  ipc.handle('cron:update', (_event, id, updates) => cronManager.update(id, updates));
   ipc.handle('cron:delete', (_event, id) => {
-    cron.delete(id);
+    cronManager.delete(id);
     return { ok: true };
   });
 
