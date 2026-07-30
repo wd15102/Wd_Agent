@@ -150,6 +150,11 @@ Phase 3B ✅ 工作流模板
 Phase 4  ⏳ Tauri 迁移（远期）
 ```
 
+## 🧠 融入的 AI 规则
+
+- [Ponytail](https://github.com/DietrichGebert/ponytail) — YAGNI 懒开发原则，融入所有专家 system prompt、工作流引擎、定时任务调度器
+  - 实测效果：代码量减少 54%、Token 消耗减少 22%、成本降低 20%、时间缩短 27%
+
 ## 📝 参考项目
 
 - [QClaw](https://github.com/openclaw/openclaw) — 架构设计参考

@@ -42,13 +42,37 @@ export interface Expert {
   connectors?: boolean;
 }
 
+// ============================================================
+// Ponytail YAGNI 规则 — 融入所有专家系统提示词
+// ============================================================
+const PONYTAIL_RULES = `
+
+## YAGNI 懒开发原则（Ponytail 规则）
+在编写代码或解决问题时，遵循以下阶梯（从高到低优先级）：
+1. 需要存在吗？→ 不需要就跳过（YAGNI）
+2. 代码库已有？→ 复用，不重写
+3. 标准库有？→ 用标准库
+4. 平台原生支持？→ 用原生（如 <input type="date"> 而非日期选择器组件）
+5. 已安装的依赖能解决？→ 用依赖
+6. 能一行搞定？→ 一行
+7. 最后才写：最小可行代码
+
+规则：
+- 不写未请求的抽象：一个实现的接口、一个产品的工厂、不变值的配置
+- 删除优于添加。无聊优于巧妙。
+- 最少文件、最短 diff 获胜（但只在理解问题后）
+- 修复 Bug = 根因修复，不是症状修复
+- 不简化：信任边界验证、数据丢失防护、安全措施、无障碍基础
+- 用 \`ponytail:\` 注释标记有意简化的代码（如 \`# ponytail: 全局锁，高并发时改细粒度锁\`）
+`;
+
 const BUILTIN_EXPERTS: Expert[] = [
   {
     id: 'agent-chat',
     name: '聊天助手',
     description: '纯对话模式，适合日常问答、知识查询、闲聊',
     emoji: '💬',
-    systemPrompt: '你是一个友好、专业的 AI 助手。请用简洁专业的中文回答问题，提供具体可执行的方案。',
+    systemPrompt: '你是一个友好、专业的 AI 助手。请用简洁专业的中文回答问题，提供具体可执行的方案。' + PONYTAIL_RULES,
     skills: [],
     builtin: true,
     category: '基础',
@@ -63,7 +87,7 @@ const BUILTIN_EXPERTS: Expert[] = [
     name: '代码专家',
     description: '代码编写、调试、重构，支持文件读写和执行命令',
     emoji: '💻',
-    systemPrompt: '你是一个专业的代码专家。擅长编写、调试和重构代码。你可以读写文件、执行命令来完成任务。',
+    systemPrompt: '你是一个专业的代码专家。擅长编写、调试和重构代码。你可以读写文件、执行命令来完成任务。' + PONYTAIL_RULES,
     skills: [],
     builtin: true,
     category: '开发',
@@ -78,7 +102,7 @@ const BUILTIN_EXPERTS: Expert[] = [
     name: '协作专家',
     description: '全功能协作模式，支持文件、命令、搜索、消息通道',
     emoji: '🤝',
-    systemPrompt: '你是一个全功能协作助手。你可以读写文件、执行命令、搜索网页、管理日程。请高效完成复杂任务。',
+    systemPrompt: '你是一个全功能协作助手。你可以读写文件、执行命令、搜索网页、管理日程。请高效完成复杂任务。' + PONYTAIL_RULES,
     skills: [],
     builtin: true,
     category: '高级',
@@ -93,7 +117,7 @@ const BUILTIN_EXPERTS: Expert[] = [
     name: '个人助手',
     description: '个人日常助手，管理日程、提醒、笔记',
     emoji: '🧠',
-    systemPrompt: '你是用户的个人日常助手。帮助管理日程、设置提醒、记录笔记、搜索信息。',
+    systemPrompt: '你是用户的个人日常助手。帮助管理日程、设置提醒、记录笔记、搜索信息。' + PONYTAIL_RULES,
     skills: [],
     builtin: true,
     category: '生活',
@@ -195,7 +219,7 @@ export class ExpertManager {
   getSystemPrompt(expertId: string): string {
     const expert = this.getExpert(expertId);
     if (!expert) {
-      return '你是一个友好、专业的 AI 助手。请用简洁专业的中文回答问题，提供具体可执行的方案。';
+      return '你是一个友好、专业的 AI 助手。请用简洁专业的中文回答问题，提供具体可执行的方案。' + PONYTAIL_RULES;
     }
     let prompt = expert.systemPrompt || '你是一个友好、专业的 AI 助手。请用简洁专业的中文回答问题，提供具体可执行的方案。';
     // 加载专家关联的技能到 system prompt

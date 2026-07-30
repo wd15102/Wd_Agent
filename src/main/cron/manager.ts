@@ -199,7 +199,7 @@ export class CronManager {
       const toolDefs = this.tools.getDefinitions();
 
       const messages: any[] = [
-        { role: 'system', content: `你是吴东的Claw智能助手定时任务执行器。请完成以下任务：` },
+        { role: 'system', content: `你是吴东的Claw智能助手定时任务执行器。请完成以下任务：\n\n## YAGNI 懒开发原则\n1. 需要存在吗？不需要就跳过\n2. 代码库已有？复用，不重写\n3. 标准库有？用标准库\n4. 平台原生支持？用原生\n5. 已安装的依赖能解决？用依赖\n6. 能一行搞定？一行\n7. 最后才写最小可行代码` },
         { role: 'user', content: job.prompt },
       ];
 

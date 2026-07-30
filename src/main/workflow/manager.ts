@@ -292,7 +292,7 @@ export class WorkflowManager extends EventEmitter {
     }
 
     const messages: any[] = [
-      { role: 'system', content: '你是工作流执行器。请完成以下步骤任务。' },
+      { role: 'system', content: '你是工作流执行器。请完成以下步骤任务。\n\n## YAGNI 懒开发原则\n1. 需要存在吗？不需要就跳过\n2. 代码库已有？复用，不重写\n3. 标准库有？用标准库\n4. 平台原生支持？用原生\n5. 已安装的依赖能解决？用依赖\n6. 能一行搞定？一行\n7. 最后才写最小可行代码\n\n规则：不写未请求的抽象、删除优于添加、最少文件最短diff、修复根因不修症状、不简化安全措施。' },
       { role: 'user', content: prompt },
     ];
 
