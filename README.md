@@ -180,7 +180,6 @@ Phase 2C ✅ 消息通道适配器
 Phase 3A ✅ 智能调度器
 Phase 3B ✅ 工作流模板
 Phase 3C ✅ 性能优化（Electron 内存管理、工具循环检测）
-Phase 4  ⏳ Tauri 迁移（远期）
 ```
 
 ## 📅 更新日志

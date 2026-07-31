@@ -18,7 +18,6 @@
 | Phase 2C | 📡 消息通道适配器 ✅ 已完成 | connectors/base.py | 4-5h |
 | Phase 3A | ⏰ 智能调度器 ✅ 已完成 | automation/scheduler.py | 3-4h |
 | Phase 3B | 📋 工作流模板 ✅ 已完成 | agents/ + engine | 3-4h |
-| Phase 4 | 🦀 Tauri 迁移（远期） | — | 1-2周 |
 
 ---
 
@@ -257,20 +256,7 @@ async for event in self._loop():
 - [ ] `WorkflowMarketplace.tsx` — 本地 + 在线模板
 - [ ] 分类筛选、搜索、一键使用
 
----
 
-## Phase 4：🦀 Tauri 迁移（远期）
-
-**目标**：安装包 < 30MB，内存 < 100MB。
-
-- [ ] 评估 Electron API 使用情况
-- [ ] Rust 重写 Gateway + 工具层
-- [ ] 前端适配 Tauri IPC
-- [ ] 打包优化 + 代码签名
-
----
-
-## 🎯 实施顺序
 
 ```
 Phase 0 (架构重构)
@@ -280,8 +266,6 @@ Phase 1A (审批) + Phase 1B (时间轴) + Phase 1C (审计)  ← 可并行
 Phase 2A (Agent 类型) → Phase 2B (MCP) → Phase 2C (通道)
   ↓
 Phase 3A (调度器) + Phase 3B (工作流模板)
-  ↓
-Phase 4 (Tauri)
 ```
 
 ## ✅ 验收标准
