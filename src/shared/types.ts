@@ -226,7 +226,24 @@ export type WdClawEvent =
   | { type: 'error'; error: string; errorType: string }
   | { type: 'interrupted'; iterations: number }
   | { type: 'model_switched'; model: string; reason: string }
-  | { type: 'max_iterations_warning' };
+  | { type: 'max_iterations_warning' }
+  | { type: 'tool_loop_warning'; detector: string; count: number; message: string }
+  | { type: 'tool_loop_detected'; detector: string; count: number; message: string };
+
+/** 循环检测配置 */
+export interface LoopDetectionConfig {
+  enabled: boolean;
+  historySize: number;
+  warningThreshold: number;
+  unknownToolThreshold: number;
+  criticalThreshold: number;
+  globalCircuitBreakerThreshold: number;
+  detectors: {
+    genericRepeat: boolean;
+    knownPollNoProgress: boolean;
+    pingPong: boolean;
+  };
+}
 
 /** 工具权限配置 */
 export interface ToolPermissionConfig {

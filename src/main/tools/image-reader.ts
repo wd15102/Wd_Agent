@@ -1,6 +1,6 @@
 // ============================================================
 // 图片读取工具 — 用视觉模型描述图片内容
-// 从配置中读取 glm-4v-flash 模型进行图片识别
+// 从配置文件中读取 glm-4v-flash 模型进行图片识别
 // ============================================================
 import * as fs from 'fs';
 import * as path from 'path';
@@ -28,7 +28,7 @@ export async function imageReader(args: Record<string, unknown>): Promise<string
     // 从文件路径读取
     const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(
       process.env.USERPROFILE || '',
-      '.qclaw',
+      '.wdclaw',
       'workspace',
       filePath
     );
@@ -58,13 +58,17 @@ export async function imageReader(args: Record<string, unknown>): Promise<string
   // 从配置中获取 glm-4v-flash 模型的 baseUrl 和 apiKey
   const visionConfig = getVisionModelConfig();
   if (!visionConfig) {
-    throw new Error('未找到 glm-4v-flash 模型配置，请在设置中添加 GLM 视觉模型。');
+    throw new Error('未找到可用的视觉模型配置。请在设置中添加 glm-4v-flash 模型或任意 GLM 模型。');
   }
   if (!visionConfig.apiKey) {
-    throw new Error('glm-4v-flash 未配置 API Key，请在设置中填写。');
+    throw new Error('视觉模型未配置 API Key，请在设置中填写。');
   }
 
-  const apiUrl = visionConfig.baseUrl || 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+  // 拼接完整 API URL（与 agent/index.ts 保持一致）
+  let apiUrl = visionConfig.baseUrl || 'https://open.bigmodel.cn/api/paas/v4';
+  if (!apiUrl.endsWith('/chat/completions')) {
+    apiUrl = `${apiUrl}/chat/completions`;
+  }
   const modelId = visionConfig.model || VISION_MODEL_ID;
 
   // 调用视觉模型
@@ -90,7 +94,7 @@ export async function imageReader(args: Record<string, unknown>): Promise<string
           ],
         },
       ],
-      max_tokens: 2000,
+      max_tokens: visionConfig.maxTokens,
       stream: false,
     }),
   });
@@ -110,35 +114,112 @@ export async function imageReader(args: Record<string, unknown>): Promise<string
 }
 
 /**
- * 从配置中获取视觉模型完整配置
- * 查找 models 数组中 id 为 glm-4v-flash 的模型，返回其 baseUrl/apiKey/model
+ * 安全移除 JSON5 注释（不破坏 URL 中的 //）
  */
-function getVisionModelConfig(): { baseUrl: string; apiKey: string; model: string } | null {
+function stripJson5(src: string): string {
+  // 1. 移除多行注释 /* ... */
+  let result = src.replace(/\/\*[\s\S]*?\*\//g, '');
+  // 2. 移除单行注释 // ...（不在字符串内）
+  const lines = result.split('\n');
+  const processed = lines.map(line => {
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\') { escaped = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (!inString && ch === '/' && line[i + 1] === '/') {
+        return line.substring(0, i);
+      }
+    }
+    return line;
+  });
+  return processed.join('\n');
+}
+
+/**
+ * 从配置文件中获取视觉模型配置
+ * 直接读取 ~/.wdclaw/config.json5
+ * 优先级：
+ * 1. 精确匹配 glm-4v-flash 模型
+ * 2. 任意 glm 开头的模型（用它的凭证调 glm-4v-flash）
+ * 3. 默认模型（用它的凭证调 glm-4v-flash）
+ * 4. 任意有 apiKey 的模型
+ */
+function getVisionModelConfig(): { baseUrl: string; apiKey: string; model: string; maxTokens: number } | null {
   try {
-    const { getConfig } = require('../gateway/config');
-    const config = getConfig();
-    // 精确匹配 glm-4v-flash 模型
-    const visionModel = config.models?.models?.find((m: any) => m.id === VISION_MODEL_ID);
-    if (visionModel) {
+    const os = require('os');
+    const configPath = path.join(os.homedir(), '.wdclaw', 'config.json5');
+    if (!fs.existsSync(configPath)) {
+      console.error('[imageReader] 配置文件不存在:', configPath);
+      return null;
+    }
+    const raw = fs.readFileSync(configPath, 'utf-8');
+    const json = stripJson5(raw);
+    const config = JSON.parse(json);
+    const models = config.models?.models || [];
+    const defaultModelId = config.models?.defaultModel;
+
+    console.log(`[imageReader] 已加载 ${models.length} 个模型，默认: ${defaultModelId}`);
+
+    // 读取配置中的 maxTokens，但 GLM-4V-Flash 限制最大 1024
+    const configuredMaxTokens = config.models?.maxTokens || 4096;
+    const maxTokens = Math.min(configuredMaxTokens, 1024);
+
+    // 1. 精确匹配 glm-4v-flash
+    const visionModel = models.find((m: any) => m.id === VISION_MODEL_ID);
+    if (visionModel && visionModel.apiKey) {
+      console.log('[imageReader] 使用 glm-4v-flash 专用配置');
       return {
         baseUrl: visionModel.baseUrl || 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
-        apiKey: visionModel.apiKey || '',
+        apiKey: visionModel.apiKey,
         model: visionModel.model || VISION_MODEL_ID,
+        maxTokens: Math.min(visionModel.maxTokens || configuredMaxTokens, 1024),
       };
     }
-    // fallback: 查找任意 glm 开头的模型
-    const glmModel = config.models?.models?.find((m: any) =>
+
+    // 2. 任意 glm 开头的模型（借用凭证）
+    const glmModel = models.find((m: any) =>
       m.id?.startsWith('glm') && m.baseUrl && m.apiKey
     );
     if (glmModel) {
+      console.log(`[imageReader] 借用 ${glmModel.id} 的凭证调用 ${VISION_MODEL_ID}`);
       return {
         baseUrl: glmModel.baseUrl,
         apiKey: glmModel.apiKey,
         model: VISION_MODEL_ID,
+        maxTokens,
       };
     }
+
+    // 3. 默认模型的凭证
+    const defaultModel = models.find((m: any) => m.id === defaultModelId && m.apiKey);
+    if (defaultModel) {
+      console.log(`[imageReader] 借用默认模型 ${defaultModel.id} 的凭证调用 ${VISION_MODEL_ID}`);
+      return {
+        baseUrl: defaultModel.baseUrl || 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+        apiKey: defaultModel.apiKey,
+        model: VISION_MODEL_ID,
+        maxTokens,
+      };
+    }
+
+    // 4. 任意有 apiKey 的模型
+    const anyModel = models.find((m: any) => m.apiKey);
+    if (anyModel) {
+      console.log(`[imageReader] 借用 ${anyModel.id} 的凭证调用 ${VISION_MODEL_ID}`);
+      return {
+        baseUrl: anyModel.baseUrl || 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+        apiKey: anyModel.apiKey,
+        model: VISION_MODEL_ID,
+        maxTokens,
+      };
+    }
+
     return null;
-  } catch {
+  } catch (err) {
+    console.error('[imageReader] 读取配置失败:', err);
     return null;
   }
 }

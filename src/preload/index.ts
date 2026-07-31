@@ -78,6 +78,16 @@ const electronAPI: ElectronAPITypes = {
     ipcRenderer.on('chat:turn_end', handler);
     return () => ipcRenderer.removeListener('chat:turn_end', handler);
   },
+  onToolLoopWarning: (cb) => {
+    const handler = (_: any, data: any) => cb(data);
+    ipcRenderer.on('chat:tool_loop_warning', handler);
+    return () => ipcRenderer.removeListener('chat:tool_loop_warning', handler);
+  },
+  onToolLoopDetected: (cb) => {
+    const handler = (_: any, data: any) => cb(data);
+    ipcRenderer.on('chat:tool_loop_detected', handler);
+    return () => ipcRenderer.removeListener('chat:tool_loop_detected', handler);
+  },
   sendApprovalResponse: (toolCallId: string, outcome: 'once' | 'always' | 'deny') =>
     ipcRenderer.invoke('tool:approval_response', toolCallId, outcome),
 

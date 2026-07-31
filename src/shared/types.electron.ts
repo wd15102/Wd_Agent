@@ -112,6 +112,8 @@ export interface ElectronAPI {
   onExecutionStep: (cb: (data: { sessionId: string; step: any }) => void) => () => void;
   onTurnStart: (cb: (data: { sessionId: string }) => void) => () => void;
   onTurnEnd: (cb: (data: { sessionId: string; status: string; iterations: number }) => void) => () => void;
+  onToolLoopWarning: (cb: (data: { sessionId: string; detector: string; count: number; message: string }) => void) => () => void;
+  onToolLoopDetected: (cb: (data: { sessionId: string; detector: string; count: number; message: string }) => void) => () => void;
   sendApprovalResponse: (toolCallId: string, outcome: 'once' | 'always' | 'deny') => Promise<{ ok: boolean }>;
 
   listTools: () => Promise<ToolDefinition[]>;

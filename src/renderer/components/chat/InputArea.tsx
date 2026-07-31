@@ -1,7 +1,7 @@
 // ============================================================
 // 输入区域 — 模型选择 + 文件选择 + Agent 选择 + 工具栏
 // ============================================================
-import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
+import React, { useState, useRef, KeyboardEvent, useEffect, useCallback } from 'react';
 import { Button, Input, Tooltip, Dropdown, message, Select, Modal, Checkbox, Tag, List } from 'antd';
 import { themeEngine } from '../settings/themeEngine';
 import {
@@ -117,6 +117,44 @@ export default function InputArea({
     setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
   };
 
+  // 粘贴图片处理
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const imageFiles: SelectedFile[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) continue;
+        const wf: SelectedFile = { name: file.name || 'pasted-image.png', size: file.size };
+        // Electron: try to get path
+        const anyFile = file as any;
+        if (anyFile.path) {
+          wf.path = anyFile.path;
+        }
+        imageFiles.push(wf);
+        // Always read base64 for preview
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          setSelectedFiles(prev => {
+            const idx = prev.indexOf(wf);
+            if (idx < 0) return prev;
+            const updated = [...prev];
+            updated[idx] = { ...updated[idx], data: dataUrl };
+            return updated;
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+    if (imageFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...imageFiles]);
+    }
+  }, []);
+
   // 切换 Agent 选中
   const toggleAgent = (agent: Agent) => {
     setSelectedAgents(prev => {
@@ -175,17 +213,27 @@ export default function InputArea({
       {/* 已选择的文件/Agent 预览 */}
       {(selectedFiles.length > 0 || selectedAgents.length > 0) && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-          {selectedFiles.map((f, idx) => (
-            <Tag
-              key={idx}
-              closable
-              onClose={() => removeFile(idx)}
-              icon={<FileOutlined />}
-              style={{ fontSize: 12, padding: '2px 8px' }}
-            >
-              {f.name} ({formatFileSize(f.size)})
-            </Tag>
-          ))}
+          {selectedFiles.map((f, idx) => {
+            const isImage = f.data?.startsWith('data:image') || /\.(png|jpe?g|gif|webp|bmp)$/i.test(f.name);
+            return (
+              <Tag
+                key={idx}
+                closable
+                onClose={() => removeFile(idx)}
+                icon={isImage && f.data ? undefined : <FileOutlined />}
+                style={{ fontSize: 12, padding: isImage && f.data ? '2px 2px 2px 8px' : '2px 8px' }}
+              >
+                {isImage && f.data ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <img src={f.data} alt={f.name} style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4 }} />
+                    <span>{f.name}</span>
+                  </div>
+                ) : (
+                  <span>{f.name} ({formatFileSize(f.size)})</span>
+                )}
+              </Tag>
+            );
+          })}
           {selectedAgents.map(a => (
             <Tag
               key={a.id}
@@ -225,6 +273,7 @@ export default function InputArea({
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder={inputPlaceholder}
           disabled={disabled}
           autoSize={{ minRows: 2, maxRows: 8 }}
@@ -306,7 +355,7 @@ export default function InputArea({
 
         <div style={{ flex: 1 }} />
         <div style={{ fontSize: 11, color: 'var(--text-placeholder)' }}>
-          Enter 发送 · Shift+Enter 换行
+          Enter 发送 · Shift+Enter 换行 · Ctrl+V 粘贴图片
         </div>
       </div>
 

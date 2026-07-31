@@ -31,7 +31,7 @@ export default function MessageList({ messages, streamingContent, streamingReaso
 
   return (
     <div>
-      <div style={{ maxWidth: 'min(90%, 1200px)', margin: '0 auto', padding: '12px 0' }}>
+      <div className="message-list" style={{ maxWidth: 'min(90%, 1200px)', margin: '0 auto', padding: '12px 0' }}>
         {messages.map(msg => <MessageItem key={msg.id} message={msg} />)}
 
         {hasToolCalls && generating && <ToolCallGroup toolCalls={toolCalls} />}

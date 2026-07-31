@@ -207,7 +207,12 @@ export function setupIpcHandlers(
             }
           } catch (err: any) {
             console.error('[chat:send] 图片读取失败:', file.name, err.message);
-            imageDescriptions.push(`[图片 ${file.name} 读取失败: ${err.message}]`);
+            const friendlyError = err.message?.includes('未找到')
+              ? '未找到视觉模型配置，请先在设置中添加 GLM-4V-Flash 模型'
+              : err.message?.includes('API Key') || err.message?.includes('apiKey')
+              ? '视觉模型 API Key 未配置，请在设置中填写'
+              : err.message;
+            imageDescriptions.push(`[图片 ${file.name} 读取失败: ${friendlyError}]`);
           }
         }
         if (imageDescriptions.length > 0) {
@@ -315,6 +320,12 @@ export function setupIpcHandlers(
             break;
           case 'turn_start':
             try { mainWindow.webContents.send('chat:turn_start', { sessionId }); } catch {}
+            break;
+          case 'tool_loop_warning':
+            try { mainWindow.webContents.send('chat:tool_loop_warning', { sessionId, detector: evt.detector, count: evt.count, message: evt.message }); } catch {}
+            break;
+          case 'tool_loop_detected':
+            try { mainWindow.webContents.send('chat:tool_loop_detected', { sessionId, detector: evt.detector, count: evt.count, message: evt.message }); } catch {}
             break;
           case 'turn_end':
             try { mainWindow.webContents.send('chat:turn_end', { sessionId, status: evt.status, iterations: evt.iterations }); } catch {}

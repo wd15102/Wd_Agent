@@ -310,7 +310,7 @@ export default function App() {
           }}
         />
       )}
-      <Layout style={{ height: '100vh', display: 'flex', position: 'relative', zIndex: 1, background: showBg ? 'transparent' : 'var(--bg-primary)' }}>
+      <Layout style={{ height: '100vh', display: 'flex', position: 'relative', zIndex: 1, background: showBg ? 'transparent' : 'var(--bg-primary)' }} data-has-bg-image={showBg ? 'true' : 'false'}>
         {activePage !== 'settings' && (
           <Sider width={260} style={{ background: showBg ? `color-mix(in srgb, var(--bg-secondary) ${(sidebarOpacity * 100).toFixed(0)}%, transparent)` : 'var(--bg-secondary)', borderRight: '1px solid var(--border-light)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <Sidebar

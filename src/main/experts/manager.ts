@@ -236,7 +236,13 @@ export class ExpertManager {
         }
       }
       if (skillContents.length > 0) {
-        prompt += '\n\n## 专业技能\n你具备以下专业技能，请根据用户需求主动运用：\n';
+        prompt += '\n\n## 专业技能（Agent 必读）\n';
+        prompt += '你具备以下专业技能。每个技能都包含具体的执行步骤，告诉你要用哪些工具（exec/read/web_search/web_fetch/write）来完成。\n';
+        prompt += '**执行规则**：\n';
+        prompt += '1. 当用户的需求匹配某个技能的触发条件时，严格按照该技能的「执行步骤」操作\n';
+        prompt += '2. 技能中的 bash 命令用 exec 工具运行，文件操作用 read/write 工具完成\n';
+        prompt += '3. 先读 SKILL.md 再动手，不要凭记忆猜测\n';
+        prompt += '4. 技能执行失败时重试 2 次，仍失败则告知用户\n\n';
         prompt += skillContents.map((c, i) => `### 技能 ${i + 1}\n${c}`).join('\n\n');
       }
     }

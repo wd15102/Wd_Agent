@@ -35,7 +35,7 @@ function searchDuckDuckGo(query: string): Promise<SearchResult[]> {
   return new Promise((resolve, reject) => {
     const url = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`;
     https
-      .get(url, { headers: { 'User-Agent': 'WdClaw/1.0 (吴东的Claw智能助手)' } }, (res) => {
+      .get(url, { headers: { 'User-Agent': 'WdClaw/1.0 (Windows; x64)' } }, (res) => {
         let data = '';
         res.on('data', (chunk) => (data += chunk));
         res.on('end', () => {

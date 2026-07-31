@@ -35,7 +35,7 @@ export default function MessageItem({ message }: Props) {
   if (isSystem) return null;
 
   return (
-    <div className="fade-in" style={{ display: 'flex', gap: 10, padding: '10px 16px', flexDirection: isUser ? 'row-reverse' : 'row' }}>
+    <div className="message-item fade-in" style={{ display: 'flex', gap: 10, padding: '10px 16px', flexDirection: isUser ? 'row-reverse' : 'row' }}>
       <Avatar
         size={26}
         icon={isUser ? <UserOutlined /> : <RobotOutlined />}
@@ -51,7 +51,7 @@ export default function MessageItem({ message }: Props) {
         </div>
 
         {isUser ? (
-          <div style={{
+          <div className="message-content" style={{
             display: 'inline-block', maxWidth: '80%',
             background: 'var(--bg-tertiary)', color: 'var(--text-primary)',
             padding: '8px 12px', borderRadius: '8px 8px 2px 8px',
@@ -75,7 +75,7 @@ export default function MessageItem({ message }: Props) {
             )}
           </div>
         ) : (
-          <div className="markdown-body" style={{ maxWidth: '100%' }}>
+          <div className="message-content markdown-body" style={{ maxWidth: '100%' }}>
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -103,11 +103,20 @@ export default function MessageItem({ message }: Props) {
                   label: (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <ThunderboltFilled style={{ color: '#667eea', fontSize: 12 }} />
-                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>深度思考</span>
+                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                        深度思考
+                        {message.thinking.length > 100 && (
+                          <span style={{ fontSize: 11, opacity: 0.6, marginLeft: 4 }}>
+                            ({Math.round(message.thinking.length / 100) / 10}k 字)
+                          </span>
+                        )}
+                      </span>
                     </div>
                   ),
                   children: (
-                    <div style={{
+                    <div
+                      className="thinking-scroll"
+                      style={{
                       fontSize: 12,
                       color: 'var(--text-secondary)',
                       lineHeight: 1.7,
@@ -118,6 +127,9 @@ export default function MessageItem({ message }: Props) {
                       marginTop: 6,
                       whiteSpace: 'pre-wrap',
                       fontStyle: 'italic',
+                      maxHeight: 320,
+                      overflowY: 'auto',
+                      overflowX: 'hidden',
                     }}>
                       {message.thinking}
                     </div>

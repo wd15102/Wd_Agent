@@ -55,4 +55,17 @@ export const DEFAULT_CONFIG = {
   workflows: {
     templates: [],
   },
+  loopDetection: {
+    enabled: true,
+    historySize: 30,
+    warningThreshold: 10,
+    unknownToolThreshold: 10,
+    criticalThreshold: 20,
+    globalCircuitBreakerThreshold: 30,
+    detectors: {
+      genericRepeat: true,
+      knownPollNoProgress: true,
+      pingPong: true,
+    },
+  },
 };

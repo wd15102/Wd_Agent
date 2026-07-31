@@ -5,6 +5,7 @@ import { ConfigManager } from '../gateway/config';
 import { ToolRegistry } from '../tools/registry';
 import { ToolCall, ToolDef, WdClawEvent, ExecutionStep, PermissionRequest, PermissionOutcome, ToolPermissionConfig } from '../../shared/types';
 import { ModelConfig } from '../../shared/types';
+import { detectToolCallLoop, recordToolCall, recordToolCallResult, ToolCallRecord, LoopDetectionConfig } from './tool-loop-detection';
 
 // 低风险工具 → 并发执行
 const LOW_RISK_TOOLS = new Set(['read', 'list_dir', 'web_search', 'web_fetch', 'image_reader']);
@@ -15,10 +16,12 @@ export class Agent {
   private configManager: ConfigManager;
   private toolRegistry: ToolRegistry;
   private abortController: AbortController | null = null;
-  private maxToolRounds = 10;
   public isAborted = false;
   private permissionConfig: ToolPermissionConfig = {};
   private pendingApprovals: Map<string, { resolve: (outcome: PermissionOutcome) => void }> = new Map();
+  // 工具调用历史（用于循环检测）
+  private toolCallHistory: ToolCallRecord[] = [];
+  private loopDetectionConfig: LoopDetectionConfig | undefined;
 
   constructor(configManager: ConfigManager, toolRegistry: ToolRegistry) {
     this.configManager = configManager;
@@ -75,13 +78,21 @@ export class Agent {
       let currentMessages = [...messages];
       let round = 0;
 
-      while (round < this.maxToolRounds) {
+      // 加载循环检测配置
+      try {
+        const cfg = this.configManager.get();
+        this.loopDetectionConfig = (cfg as any).loopDetection;
+      } catch { /* ignore */ }
+
+      // 无限循环 — 靠智能循环检测来终止（不再硬编码轮次上限）
+      while (true) {
+        round++;
+
         // 中断检查点
         if (this.isAborted) {
           yield { type: 'interrupted', iterations: round };
           return;
         }
-        round++;
 
         // ── 步骤1: 思考中 ──
         const thinkingStep = this.createStep('thinking', '思考中...', '正在分析问题');
@@ -133,6 +144,26 @@ export class Agent {
           const lowRiskCalls = toolCalls.filter((tc) => LOW_RISK_TOOLS.has(tc.name));
           const highRiskCalls = toolCalls.filter((tc) => !LOW_RISK_TOOLS.has(tc.name));
 
+          // ── 循环检测：逐个检查每个工具调用 ──
+          for (const tc of [...lowRiskCalls, ...highRiskCalls]) {
+            const loopResult = detectToolCallLoop(
+              this.toolCallHistory,
+              tc.name,
+              tc.args,
+              this.loopDetectionConfig
+            );
+            if (loopResult.stuck && loopResult.level === 'critical') {
+              yield { type: 'tool_loop_detected', detector: loopResult.detector!, count: loopResult.count!, message: loopResult.message! };
+              yield { type: 'turn_end', status: 'tool_loop_terminated', iterations: round };
+              return;
+            }
+            if (loopResult.stuck && loopResult.level === 'warning') {
+              yield { type: 'tool_loop_warning', detector: loopResult.detector!, count: loopResult.count!, message: loopResult.message! };
+            }
+            // 记录工具调用（执行前）
+            this.toolCallHistory = recordToolCall(this.toolCallHistory, tc.name, tc.args, tc.id);
+          }
+
           // 低风险并发执行
           if (lowRiskCalls.length > 0) {
             const lowRiskResults = await Promise.all(
@@ -169,10 +200,6 @@ export class Agent {
         yield { type: 'turn_end', status: 'completed', iterations: round };
         return;
       }
-
-      // 超过最大轮次
-      yield { type: 'max_iterations_warning' };
-      yield { type: 'turn_end', status: 'max_iterations_exceeded', iterations: round };
     } catch (err: any) {
       if (err.name === 'AbortError') {
         yield { type: 'interrupted', iterations: 0 };
@@ -254,6 +281,9 @@ export class Agent {
       } as any);
 
       events.push({ type: 'tool_finished', toolCallId: tc.id, result });
+
+      // 记录工具结果（循环检测用）
+      this.toolCallHistory = recordToolCallResult(this.toolCallHistory, tc.name, tc.args, result);
     } catch (err: any) {
       toolCall.result = `Error: ${err.message}`;
       toolCall.status = 'error';
@@ -268,6 +298,9 @@ export class Agent {
       } as any);
 
       events.push({ type: 'tool_finished', toolCallId: tc.id, result: toolCall.result });
+
+      // 记录工具错误结果（循环检测用）
+      this.toolCallHistory = recordToolCallResult(this.toolCallHistory, tc.name, tc.args, undefined, err.message);
     }
 
     return events;

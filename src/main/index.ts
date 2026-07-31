@@ -24,6 +24,20 @@ const isDev = !app.isPackaged;
 const GATEWAY_PORT = 3210;
 const PID_FILE = path.join(os.tmpdir(), 'wdclaw-app.pid');
 
+// ── Chromium 内存优化 flags ──
+if (!isDev) {
+  // 限制渲染进程内存（约 1.5GB 上限）
+  app.commandLine.appendSwitch('--renderer-process-limit', '2');
+  // 禁用非必要功能
+  app.commandLine.appendSwitch('disable-features', 'BackForwardCache,AcceptCHFrame,MediaRouter,OptimizationHints');
+  // 减少 GPU 内存占用
+  app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
+  // 启用内存压力信号（系统内存紧张时 Chromium 主动释放）
+  app.commandLine.appendSwitch('enable-memory-pressure-signal');
+  // 限制 V8 堆大小（MB）
+  app.commandLine.appendSwitch('--js-flags', '--max-old-space-size=1536');
+}
+
 function writePidFile() {
   try { fs.writeFileSync(PID_FILE, String(process.pid)); } catch {}
 }
@@ -117,11 +131,18 @@ function createWindow() {
     if (isDev || !configManager.get().system.startMinimized) {
       mainWindow?.show();
     }
+    // F12 / Ctrl+Shift+I 手动打开 DevTools
+    mainWindow?.webContents.on('before-input-event', (_event, input) => {
+      if (input.key === 'F12' || (input.control && input.shift && input.key === 'I')) {
+        mainWindow?.webContents.toggleDevTools();
+      }
+    });
   });
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
+    // DevTools 改为手动打开：F12 或 Ctrl+Shift+I
+    // mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
@@ -256,6 +277,15 @@ app.whenReady().then(async () => {
   createTray();
   await initialize();
   writePidFile();
+
+  // Dev 模式：每 30 秒打印内存使用情况
+  if (isDev) {
+    const MB = 1024 * 1024;
+    setInterval(() => {
+      const mem = process.memoryUsage();
+      console.log(`[Mem] RSS:${Math.round(mem.rss/MB)}MB Heap:${Math.round(mem.heapUsed/MB)}/${Math.round(mem.heapTotal/MB)}MB External:${Math.round(mem.external/MB)}MB`);
+    }, 30000);
+  }
 });
 
 app.on('second-instance', () => {
@@ -275,6 +305,10 @@ app.on('before-quit', () => {
   cleanupPidFile();
   sessionManager?.saveAllSessions();
   gateway?.stop();
+  // 强制释放 GPU 资源
+  mainWindow?.webContents.forcefullyCrashRenderer();
+  // 清理 V8 堆（Node 22+）
+  if (global.gc) { try { global.gc(); } catch {} }
 });
 
 app.on('activate', () => {

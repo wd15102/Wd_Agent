@@ -594,7 +594,7 @@ export const BUILT_IN_THEMES: ThemeConfig[] = [
       'http://127.0.0.1:3210/themes/wukong/slide_19.jpg',
       'http://127.0.0.1:3210/themes/wukong/slide_21.jpg',
     ],
-    backgroundSlideshowInterval: 8,
+    backgroundSlideshowInterval: 1800,  // 30 分钟
     backgroundFit: 'contain',
     backgroundOpacity: 0.8,
     backgroundBlur: 0,

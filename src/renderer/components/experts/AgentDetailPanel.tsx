@@ -5,7 +5,7 @@ import {
   CalendarOutlined, PlusOutlined, MinusOutlined,
   MessageOutlined, RobotOutlined, CloseOutlined,
   InfoCircleOutlined, UserOutlined, AppstoreOutlined,
-  ToolOutlined, SettingOutlined,
+  ToolOutlined, SettingOutlined, SearchOutlined,
 } from '@ant-design/icons';
 import AvatarPicker from '../avatars/AvatarPicker';
 
@@ -50,6 +50,10 @@ export default function AgentDetailPanel({ expert, onClose, onRefresh, onStartCh
   const [allSkills, setAllSkills] = useState<any[]>([]);
   const [selectedSkill, setSelectedSkill] = useState<any>(null);
   const [showSkillModal, setShowSkillModal] = useState(false);
+  const [showAddSkillModal, setShowAddSkillModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [addedSkillIds, setAddedSkillIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (expert) {
@@ -131,6 +135,16 @@ export default function AgentDetailPanel({ expert, onClose, onRefresh, onStartCh
   }
 
   const expertSkills = allSkills.filter(s => (expert.skills || []).includes(s.id));
+
+  // 获取所有分类
+  const categories = Array.from(new Set(availableSkills.map((s: any) => s.category).filter(Boolean)));
+
+  // 过滤可用技能
+  const filteredSkills = availableSkills.filter((skill: any) => {
+    const matchSearch = !searchQuery || skill.name.toLowerCase().includes(searchQuery.toLowerCase()) || (skill.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchCategory = selectedCategory === 'all' || skill.category === selectedCategory;
+    return matchSearch && matchCategory;
+  });
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-primary)' }}>
@@ -318,8 +332,9 @@ export default function AgentDetailPanel({ expert, onClose, onRefresh, onStartCh
 
             {/* Skills Grid */}
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <AppstoreOutlined /> 技能 ({expertSkills.length})
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span><AppstoreOutlined /> 技能 ({expertSkills.length})</span>
+                <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => setShowAddSkillModal(true)}>添加</Button>
               </div>
               {expertSkills.length === 0 ? (
                 <div style={{ padding: 16, background: 'var(--bg-secondary)', borderRadius: 8, textAlign: 'center', fontSize: 12, color: 'var(--text-placeholder)' }}>
@@ -406,6 +421,113 @@ export default function AgentDetailPanel({ expert, onClose, onRefresh, onStartCh
             </div>
           </div>
         )}
+      </Modal>
+      {/* Add Skill Modal */}
+      <Modal
+        title={null}
+        open={showAddSkillModal}
+        onCancel={() => { setShowAddSkillModal(false); setSearchQuery(''); setSelectedCategory('all'); setAddedSkillIds(new Set()); }}
+        footer={null}
+        width={520}
+        closeIcon={false}
+      >
+        <div style={{ padding: '0 0 16px' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ fontSize: 16, fontWeight: 600 }}><PlusOutlined /> 添加技能</div>
+            <Button type="text" icon={<CloseOutlined />} onClick={() => { setShowAddSkillModal(false); setSearchQuery(''); setSelectedCategory('all'); setAddedSkillIds(new Set()); }} />
+          </div>
+
+          {/* Search */}
+          <Input
+            placeholder="搜索技能名称或描述..."
+            prefix={<SearchOutlined style={{ color: 'var(--text-placeholder)' }} />}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            allowClear
+            style={{ marginBottom: 12 }}
+          />
+
+          {/* Category Filter */}
+          {categories.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div
+                onClick={() => setSelectedCategory('all')}
+                style={{
+                  padding: '4px 12px', borderRadius: 12, fontSize: 12, cursor: 'pointer',
+                  background: selectedCategory === 'all' ? 'var(--accent)' : 'var(--bg-secondary)',
+                  color: selectedCategory === 'all' ? 'var(--bg-primary)' : 'var(--text-secondary)',
+                  border: `1px solid ${selectedCategory === 'all' ? 'var(--accent)' : 'var(--border-light)'}`,
+                  transition: 'all 0.2s',
+                }}
+              >全部</div>
+              {categories.map(cat => (
+                <div
+                  key={cat as string}
+                  onClick={() => setSelectedCategory(cat as string)}
+                  style={{
+                    padding: '4px 12px', borderRadius: 12, fontSize: 12, cursor: 'pointer',
+                    background: selectedCategory === cat ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: selectedCategory === cat ? 'var(--bg-primary)' : 'var(--text-secondary)',
+                    border: `1px solid ${selectedCategory === cat ? 'var(--accent)' : 'var(--border-light)'}`,
+                    transition: 'all 0.2s',
+                  }}
+                >{cat}</div>
+              ))}
+            </div>
+          )}
+
+          {/* Skill Grid */}
+          {filteredSkills.length === 0 ? (
+            <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-placeholder)', fontSize: 13 }}>
+              {searchQuery || selectedCategory !== 'all' ? '没有匹配的技能' : '所有技能已关联，没有可添加的技能'}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10, maxHeight: 380, overflowY: 'auto' }}>
+              {filteredSkills.map((skill: any) => {
+                const isAdded = addedSkillIds.has(skill.id);
+                return (
+                  <div
+                    key={skill.id}
+                    onClick={() => {
+                      if (isAdded) return;
+                      handleAddSkill(skill.id);
+                      setAddedSkillIds(prev => new Set(prev).add(skill.id));
+                    }}
+                    style={{
+                      padding: '14px 12px',
+                      background: isAdded ? '#f6ffed' : 'var(--bg-secondary)',
+                      borderRadius: 12,
+                      cursor: isAdded ? 'default' : 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 8,
+                      border: `1px solid ${isAdded ? '#b7eb8f' : 'var(--border-light)'}`,
+                      transition: 'all 0.2s',
+                      opacity: isAdded ? 0.7 : 1,
+                      textAlign: 'center',
+                    }}
+                    onMouseEnter={(e) => { if (!isAdded) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(82,196,26,0.15)'; } }}
+                    onMouseLeave={(e) => { if (!isAdded) { e.currentTarget.style.borderColor = 'var(--border-light)'; e.currentTarget.style.boxShadow = 'none'; } }}
+                  >
+                    <div style={{ fontSize: 28 }}>{skill.emoji || '📦'}</div>
+                    <div style={{ width: '100%' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{skill.name}</div>
+                      {skill.category && <Tag color="cyan" style={{ fontSize: 9, padding: '0 3px', height: 16, lineHeight: '14px', marginTop: 4 }}>{skill.category}</Tag>}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', width: '100%' }}>{skill.description || '暂无描述'}</div>
+                    {isAdded ? (
+                      <div style={{ fontSize: 10, color: '#52c41a', display: 'flex', alignItems: 'center', gap: 3 }}><CheckCircleOutlined /> 已添加</div>
+                    ) : (
+                      <div style={{ fontSize: 10, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 3 }}><PlusOutlined /> 添加</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );

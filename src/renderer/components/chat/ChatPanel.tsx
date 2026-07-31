@@ -163,15 +163,22 @@ export default function ChatPanel({ sessionId, generating, setGenerating, onMess
     return unsub;
   }, []);
 
-  // 新建聊天时（无消息、未生成）随机切换 GIF
+  // 悟空主题：每 30 分钟自动切换 GIF
   useEffect(() => {
-    if (messages.length === 0 && !generating) {
-      const gifs = theme.welcomeGifs;
-      if (gifs && gifs.length > 0) {
+    const gifs = theme.welcomeGifs;
+    if (!gifs || gifs.length === 0) return;
+
+    // 只有悟空主题（有多个 GIF）才启用定时切换
+    if (gifs.length < 2) return;
+
+    const interval = setInterval(() => {
+      if (messages.length === 0 && !generating) {
         setCurrentGif(gifs[Math.floor(Math.random() * gifs.length)]);
       }
-    }
-  }, [messages.length, generating]);
+    }, 30 * 60 * 1000); // 30 分钟
+
+    return () => clearInterval(interval);
+  }, [theme.welcomeGifs, messages.length, generating]);
 
   useEffect(() => {
     if (!isUserScrolledUp) {
@@ -217,11 +224,11 @@ export default function ChatPanel({ sessionId, generating, setGenerating, onMess
   }, [permissionRequest]);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: hasBgImage ? 'transparent' : 'var(--bg-primary)' }}>
-      <div style={{ flex: 1, overflowY: 'auto', position: 'relative', background: hasBgImage ? 'transparent' : 'var(--bg-primary)' }} onScroll={handleScroll} ref={scrollContainerRef}>
+    <div className="chat-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column', background: hasBgImage ? 'transparent' : 'var(--bg-primary)' }}>
+      <div className="chat-content" style={{ flex: 1, overflowY: 'auto', position: 'relative', background: hasBgImage ? 'transparent' : 'var(--bg-primary)' }} onScroll={handleScroll} ref={scrollContainerRef}>
         {/* 全屏欢迎 GIF — 新建聊天时展示 */}
         {messages.length === 0 && !generating && currentGif && (
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', pointerEvents: 'none', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: hasBgImage ? 'transparent' : 'var(--bg-primary)', pointerEvents: 'none', overflow: 'hidden' }}>
             <img src={currentGif} alt="welcome" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
         )}
